@@ -47,10 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadProducts() {
         try {
             const [productRes, categoryRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/api/products`, {
+                fetch(`https://nonsimilar-carolyn-syncytial.ngrok-free.dev/api/products`, {
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 }),
-                fetch(`${API_BASE_URL}/api/categories`, {
+                fetch(`https://nonsimilar-carolyn-syncytial.ngrok-free.dev/api/categories`, {
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 })
             ]);
