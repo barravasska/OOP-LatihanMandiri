@@ -1,7 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    console.log("fetching:", "https://nonsimilar-carolyn-syncytial.ngrok-free.dev/api/products");
-    fetch("https://nonsimilar-carolyn-syncytial.ngrok-free.dev/api/products")
+    // ✅ URL NGROK YANG BENAR
+    const API_BASE_URL = 'https://nonsimilar-carolyn-syncyital.ngrok-free.app';
+    
+    console.log("fetching:", `${API_BASE_URL}/api/products`);
+    fetch(`${API_BASE_URL}/api/products`, {
+        headers: {
+            'ngrok-skip-browser-warning': 'true'
+        }
+    })
     .then(async res => {
         const text = await res.text();
         console.log("RAW RESPONSE:", text);
@@ -18,13 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
             cart = JSON.parse(savedCart);
         } catch (e) {
             console.error("Error parsing cart from localStorage:", e);
-            localStorage.removeItem('cafeCart'); // Hapus data corrupt
+            localStorage.removeItem('cafeCart');
         }
     }
-    const API_BASE_URL = 'https://nonsimilar-carolyn-syncytial.ngrok-free.dev';
+    
     let currentTableNumber = null;
-    let currentOrderStatus = null; // <-- VARIABEL BARU untuk simpan status
-    let pollingInterval = null; // <-- VARIABEL BARU untuk timer
+    let currentOrderStatus = null;
+    let pollingInterval = null;
 
     // Variabel Keranjang
     const cartItemsEl = document.getElementById('cart-items');
@@ -40,21 +47,33 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadProducts() {
         try {
             const [productRes, categoryRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/api/products`),
-                fetch(`${API_BASE_URL}/api/categories`)
+                fetch(`${API_BASE_URL}/api/products`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                }),
+                fetch(`${API_BASE_URL}/api/categories`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                })
             ]);
-            if (!productRes.ok || !categoryRes.ok) throw new Error('Gagal mengambil data menu.');
+            
+            if (!productRes.ok || !categoryRes.ok) {
+                throw new Error('Gagal mengambil data menu.');
+            }
+            
             const products = await productRes.json();
             const categories = await categoryRes.json();
+            
             const containers = {
                 'menu-kopi': document.getElementById('kopi-grid'),
                 'menu-makanan': document.getElementById('makanan-grid'),
                 'menu-cemilan': document.getElementById('cemilan-grid'),
                 'menu-non-kopi': document.getElementById('non-kopi-grid')
             };
+            
             const categoryMap = categories.reduce((map, cat) => {
-                map[cat.id] = cat.slug; return map;
+                map[cat.id] = cat.slug; 
+                return map;
             }, {});
+            
             products.forEach(product => {
                 const categorySlug = categoryMap[product.categoryId];
                 const container = containers[categorySlug];
@@ -151,9 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 })),
                 table: currentTableNumber
             };
-            const response = await fetch(`${API_BASE_URL}/checkout`, {
+            const response = await fetch(`${API_BASE_URL}/api/checkout`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 body: JSON.stringify(checkoutData)
             });
             const data = await response.json();
@@ -163,16 +185,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.snap.pay(data.snapToken, {
                     onSuccess: function(result) {
                         Swal.fire({
-                            icon: 'success', title: 'Pembayaran Berhasil!',
+                            icon: 'success', 
+                            title: 'Pembayaran Berhasil!',
                             text: `Pesanan Anda #${data.orderId} sedang diproses.`,
-                            timer: 3000, showConfirmButton: false
+                            timer: 3000, 
+                            showConfirmButton: false
                         });
                         cart = [];
                         updateCartUI();
                         
-                        // --- MULAI POLLING ---
-                        currentOrderStatus = "paid"; // Set status awal
-                        startOrderStatusPolling(data.orderId); // Mulai bertanya!
+                        currentOrderStatus = "paid";
+                        startOrderStatusPolling(data.orderId);
                     },
                     onPending: function(result) {
                         Swal.fire('Menunggu Pembayaran', 'Silakan selesaikan pembayaran Anda.', 'info');
@@ -247,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableModalOverlay.style.display = 'flex';
     } else {
         console.error("Elemen 'table-modal-overlay' tidak ditemukan.");
-        loadProducts(); // Fallback
+        loadProducts();
     }
 
     function startOrderStatusPolling(orderId) {
@@ -256,7 +279,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         pollingInterval = setInterval(async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/order/status/${orderId}`);
+                const response = await fetch(`${API_BASE_URL}/api/order/status/${orderId}`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
                 const data = await response.json();
                 if (data.error) throw new Error(data.error);
                 
@@ -272,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Polling error:', error);
                 clearInterval(pollingInterval);
             }
-        }, 8000); // Tanya setiap 8 detik
+        }, 8000);
     }
 
     function showStatusNotification(status) {
@@ -289,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title = 'Pesanan Anda telah diantar!';
             icon = 'success';
         } else {
-            return; // Jangan tampilkan notif untuk status "paid" atau "pending"
+            return;
         }
 
         Swal.fire({
