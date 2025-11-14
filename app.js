@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ✅ URL NGROK YANG BENAR
-    const API_BASE_URL = 'https://nonsimilar-carolyn-syncyital.ngrok-free.app';
+    const API_BASE_URL = 'https://nonsimilar-carolyn-syncyital.ngrok-free.app.dev';
     
     console.log("fetching:", `${API_BASE_URL}/api/products`);
     fetch(`${API_BASE_URL}/api/products`, {
