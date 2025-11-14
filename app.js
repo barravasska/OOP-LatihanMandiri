@@ -1,5 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    console.log("fetching:", "https://nonsimilar-carolyn-syncytial.ngrok-free.dev/api/products");
+    fetch("https://nonsimilar-carolyn-syncytial.ngrok-free.dev/api/products")
+    .then(async res => {
+        const text = await res.text();
+        console.log("RAW RESPONSE:", text);
+    })
+    .catch(err => console.error(err));
+
     // --- 1. DEFINISI SEMUA VARIABEL GLOBAL ---
     let cart = []; 
     
@@ -32,8 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadProducts() {
         try {
             const [productRes, categoryRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/products`),
-                fetch(`${API_BASE_URL}/categories`)
+                fetch(`${API_BASE_URL}/api/products`),
+                fetch(`${API_BASE_URL}/api/categories`)
             ]);
             if (!productRes.ok || !categoryRes.ok) throw new Error('Gagal mengambil data menu.');
             const products = await productRes.json();
