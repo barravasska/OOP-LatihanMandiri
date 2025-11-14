@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             attachAddToCartListeners();
+            initScrollAnimation();
         } catch (error) {
             console.error('Error memuat produk:', error);
             Swal.fire('Error', 'Gagal memuat menu: ' + error.message, 'error');
@@ -298,6 +299,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(pollingInterval);
             }
         }, 8000);
+    }
+
+    function initScrollAnimation() {
+        
+        // 1. Pilih SEMUA elemen yang ingin kita animasikan
+        //    (Kita targetkan semua kartu menu)
+        const scrollElements = document.querySelectorAll(".menu-grid .menu-item");
+
+        if (scrollElements.length === 0) return; // Tidak ada elemen untuk dianimasikan
+
+        // 2. Buat 'Observer' baru
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                
+                // 3. Cek apakah elemennya 'intersecting' (masuk ke layar)
+                if (entry.isIntersecting) {
+                    
+                    // 4. Tambahkan kelas animasi dari animate.css
+                    //    'animate__fadeInUp' adalah efek 'muncul dari bawah' yang bagus
+                    entry.target.classList.add('animate__animated', 'animate__fadeInUp');
+                    
+                    // 5. (PENTING) Berhenti mengamati elemen ini
+                    //    agar animasinya tidak berulang setiap kali di-scroll
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1 // Picu animasi saat 10% elemen terlihat
+        });
+
+        // 6. Amati setiap elemen
+        scrollElements.forEach(el => {
+            // Set elemen jadi transparan dulu agar tidak 'flash' (terlihat-hilang)
+            el.style.opacity = "0";
+            observer.observe(el);
+        });
     }
 
     function showStatusNotification(status) {
