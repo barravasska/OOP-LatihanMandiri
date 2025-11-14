@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aksen Bandung</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="icon" type="image/png" href="assets/Logo-2.png">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="text/javascript"
+      src="https://app.sandbox.midtrans.com/snap/snap.js"
+      data-client-key="Mid-client-J4waKK_JocMjnd1T"></script>
+</head>
+<body>
+
+    <div id="table-modal-overlay">
+        <div id="table-modal-content">
+            <h2>Selamat Datang!</h2>
+            <p>Silakan masukkan nomor meja Anda untuk melanjutkan.</p>
+            <input type="number" id="table-number-input" placeholder="Contoh: 12">
+            <button id="table-submit-btn">Mulai Memesan</button>
+        </div>
+    </div>
+
+    <div class="hero-section">
+        <div class="hero-content">
+            <img src="assets/logo.png" alt="Logo Kafe Koding" class="logo">
+            <h1>Selamat Datang di Aksen Bandung</h1>
+            <p class="slogan">Satu gigitan, sejuta inspirasi.</p>
+            
+            <div class="hero-links">
+                <a href="#menu-kopi">☕ Minuman</a>
+                <a href="#menu-makanan">🍔 Makanan</a>
+                <a href="#menu-cemilan">🍰 Cemilan</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+    
+    <h2 id="menu-kopi">☕ Menu Minuman</h2>
+    <div class="menu-grid" id="kopi-grid">
+        </div>
+
+    <hr class="section-divider">
+
+    <h2 id="menu-makanan">🍴 Menu Makanan</h2>
+    <div class="menu-grid" id="makanan-grid">
+        </div>
+
+    <hr class="section-divider">
+
+    <h2 id="menu-cemilan">🍰 Menu Cemilan</h2>
+    <div class="menu-grid" id="cemilan-grid">
+        </div>
+    
+    <hr class="section-divider">
+
+    <div id="cart-container">
+        <h2>Keranjang Anda</h2>
+        <ul id="cart-items">
+            </ul>
+        <h3 id="cart-total">Total: Rp 0</h3>
+
+        <button id="checkout-button">Bayar Sekarang</button>
+
+    </div>
+</div>
+
+
+
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" 
+            data-client-key="SB-Mid-client-xxxxxxxxxxxxxx"></script>
+            
+    <script src="app.js"></script>
+</body>
+</html>

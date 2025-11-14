@@ -1,0 +1,208 @@
+/* --- Import Font Modern (Inter) --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* --- Palet Warna Admin --- */
+:root {
+    --primary: #007bff;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --light-gray: #f8f9fa; /* Latar belakang body */
+    --border-gray: #dee2e6;
+    --header-gray: #e9ecef;
+    --text-dark: #343a40;
+    --text-light: #6c757d;
+    --white: #ffffff;
+}
+
+/* --- Reset & Body --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--light-gray);
+    color: var(--text-dark);
+    line-height: 1.6;
+}
+
+/* --- Layout Kontainer Utama --- */
+.container {
+    max-width: 1200px; /* Sedikit lebih lebar */
+    margin: 30px auto;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 20px;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--border-gray);
+    margin: 40px 0;
+}
+
+/* --- Layout Card (Formulir & Tabel) --- */
+.form-container,
+#product-table-container {
+    background-color: var(--white);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+}
+
+/* --- Formulir Input Modern --- */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-light);
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 1rem;
+    border: 1px solid var(--border-gray);
+    border-radius: 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Efek "Focus" yang modern */
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15);
+}
+
+/* --- Tombol --- */
+.form-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.form-buttons button,
+.edit-btn,
+.delete-btn {
+    padding: 10px 18px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#save-btn {
+    background-color: var(--success);
+    color: white;
+}
+#save-btn:hover { background-color: #218838; transform: translateY(-2px); }
+
+#clear-btn {
+    background-color: var(--text-light);
+    color: white;
+}
+#clear-btn:hover { background-color: #5a6268; transform: translateY(-2px); }
+
+/* --- Tabel Modern --- */
+#product-table {
+    width: 100%;
+    border-collapse: collapse; /* Hilangkan border ganda */
+}
+
+#product-table th,
+#product-table td {
+    padding: 15px; /* Lebih lega */
+    text-align: left;
+    vertical-align: middle;
+    /* Hanya garis bawah, lebih bersih */
+    border-bottom: 1px solid var(--border-gray); 
+}
+
+/* Header Tabel */
+#product-table th {
+    background-color: var(--header-gray);
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+/* Hapus border di baris terakhir */
+#product-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Efek hover di baris tabel */
+#product-table tbody tr:hover {
+    background-color: var(--light-gray);
+}
+
+/* Tombol Aksi di Tabel */
+.edit-btn {
+    background-color: var(--primary);
+    color: white;
+}
+.edit-btn:hover { background-color: #0069d9; }
+
+.delete-btn {
+    background-color: var(--danger);
+    color: white;
+}
+.delete-btn:hover { background-color: #c82333; }
+
+#order-history-container {
+    background-color: var(--white);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+}
+
+/* Kita pakai style grid yang sama */
+#order-history-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+/* Pesan saat kosong */
+#order-history-list:empty::before {
+    content: "Belum ada riwayat pesanan.";
+    color: var(--text-light);
+    font-style: italic;
+    grid-column: 1 / -1;
+}
+
+/* Kita buat kartu riwayat sedikit redup (karena sudah selesai) */
+#order-history-list .order-card {
+    opacity: 0.8;
+}
+#order-history-list .order-card-header h3 {
+    color: var(--text-light); /* Judulnya kita buat abu-abu */
+}
+#order-history-list .order-card-actions {
+    display: none; /* Sembunyikan tombol aksi */
+}

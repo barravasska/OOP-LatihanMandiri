@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Kafe - Manajemen Menu</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <link rel="stylesheet" href="admin.style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Panel Admin Kafe</h1>
+        <button id="logout-btn" class="delete-btn" style="width: 100%; margin-bottom: 20px;">Logout</button>
+        <hr> <div id="order-history-container">
+            <h2>Riwayat Pesanan (Selesai/Batal)</h2>
+            <div id="order-history-list">
+                </div>
+            <button id="refresh-orders-btn">Refresh Pesanan</button>
+        </div>
+        
+        <div class="form-container">
+            <h2 id="form-title">Tambah Produk Baru</h2>
+            <form id="product-form">
+                <input type="hidden" id="product-id">
+
+                <div class="form-group">
+                    <label for="product-name">Nama Produk:</label>
+                    <input type="text" id="product-name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="product-category">Kategori:</label>
+                    <select id="product-category" required>
+                        </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product-price">Harga (Rp):</label>
+                    <input type="number" id="product-price" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product-image">URL Gambar (mis: assets/nama.jpg):</label>
+                    <input type="text" id="product-image" required>
+                </div>
+
+                <div class="form-buttons">
+                    <button type="submit" id="save-btn">Simpan</button>
+                    <button type="button" id="clear-btn">Batal Edit</button>
+                </div>
+            </form>
+        </div>
+
+        <hr>
+
+        <div id="product-table-container">
+        <h2>Daftar Menu Saat Ini</h2>
+        <table id="product-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nama Produk</th>
+                    <th>Kategori ID</th>
+                    <th>Harga</th>
+                    <th>Gambar URL</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="product-list">
+                </tbody>
+        </table>
+        </div>
+    </div>
+
+    <script src="admin.app.js"></script>
+</body>
+</html>
