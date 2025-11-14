@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem('cafeCart'); // Hapus data corrupt
         }
     }
-    const API_BASE_URL = 'https://nonsimilar-carolyn-syncytial.ngrok-free.dev';
+    const API_URL = import.meta.env.VITE_API_URL; // atau process.env.REACT_APP_API_URL
     let currentTableNumber = null;
     let currentOrderStatus = null; // <-- VARIABEL BARU untuk simpan status
     let pollingInterval = null; // <-- VARIABEL BARU untuk timer
