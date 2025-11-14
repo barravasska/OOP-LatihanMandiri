@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem('cafeCart'); // Hapus data corrupt
         }
     }
-    const API_URL = import.meta.env.VITE_API_URL; // atau process.env.REACT_APP_API_URL
+    const API_URL = 'https://nonsimilar-carolyn-syncyital.ngrok-free.app';
     let currentTableNumber = null;
     let currentOrderStatus = null; // <-- VARIABEL BARU untuk simpan status
     let pollingInterval = null; // <-- VARIABEL BARU untuk timer
@@ -28,51 +28,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableNumberInput = document.getElementById('table-number-input');
     const tableSubmitBtn = document.getElementById('table-submit-btn');
 
+    
     async function loadProducts() {
-        try {
-            const [productRes, categoryRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/products`),
-                fetch(`${API_BASE_URL}/categories`)
-            ]);
-            if (!productRes.ok || !categoryRes.ok) throw new Error('Gagal mengambil data menu.');
-            const products = await productRes.json();
-            const categories = await categoryRes.json();
-            const containers = {
-                'menu-kopi': document.getElementById('kopi-grid'),
-                'menu-makanan': document.getElementById('makanan-grid'),
-                'menu-cemilan': document.getElementById('cemilan-grid'),
-                'menu-non-kopi': document.getElementById('non-kopi-grid')
-            };
-            const categoryMap = categories.reduce((map, cat) => {
-                map[cat.id] = cat.slug; return map;
-            }, {});
-            products.forEach(product => {
-                const categorySlug = categoryMap[product.categoryId];
-                const container = containers[categorySlug];
-                if (container) {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'menu-item';
-                    itemDiv.dataset.id = product.id;
-                    itemDiv.dataset.price = product.price;
-                    const formattedPrice = new Intl.NumberFormat('id-ID', {
-                        style: 'currency', currency: 'IDR', minimumFractionDigits: 0
-                    }).format(product.price);
-                    itemDiv.innerHTML = `
-                        <img src="${product.imageUrl}" alt="${product.name}">
-                        <div class="item-content">
-                            <h3>${product.name}</h3>
-                            <p>${formattedPrice}</p>
-                            <button class="add-to-cart">Tambah ke Keranjang</button>
-                        </div>
-                    `;
-                    container.appendChild(itemDiv);
-                }
-            });
-            attachAddToCartListeners();
-        } catch (error) {
-            console.error('Error memuat produk:', error);
-            Swal.fire('Error', 'Gagal memuat menu: ' + error.message, 'error');
+    try {
+        const response = await fetch(`${API_URL}/api/products`, {
+        headers: {
+            'ngrok-skip-browser-warning': 'true'
         }
+        });
+        
+        if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const products = await response.json();
+        console.log('Products loaded:', products);
+        displayProducts(products);
+    } catch (error) {
+        console.error('Error loading products:', error);
+        alert('Gagal memuat menu: ' + error.message);
+    }
     }
 
     function attachAddToCartListeners() {
