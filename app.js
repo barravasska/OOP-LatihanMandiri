@@ -274,32 +274,44 @@ document.addEventListener('DOMContentLoaded', () => {
         loadProducts();
     }
 
-    function startOrderStatusPolling(orderId) {
-        if (pollingInterval) {
-            clearInterval(pollingInterval);
+function connectToOrderWebSocket(orderId) {
+    const WS_URL = API_BASE_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+    const socket = new WebSocket(`${WS_URL}/ws/order/${orderId}`);
+    
+    socket.onopen = () => {
+        console.log('✅ Connected to order updates');
+    };
+    
+    socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'status_update') {
+            currentOrderStatus = data.status;
+            showStatusNotification(data.status);
         }
-        pollingInterval = setInterval(async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/order/status/${orderId}`, {
-                    headers: { 'ngrok-skip-browser-warning': 'true' }
-                });
-                const data = await response.json();
-                if (data.error) throw new Error(data.error);
-                
-                const newStatus = data.status;
-                if (newStatus !== currentOrderStatus) {
-                    currentOrderStatus = newStatus;
-                    showStatusNotification(newStatus);
-                }
-                if (newStatus === 'complete' || newStatus === 'cancelled') {
-                    clearInterval(pollingInterval);
-                }
-            } catch (error) {
-                console.error('Polling error:', error);
-                clearInterval(pollingInterval);
-            }
-        }, 8000);
+    };
+    
+    socket.onerror = (error) => {
+        console.error('❌ WebSocket error:', error);
+    };
+}
+
+// Panggil setelah pembayaran berhasil
+window.snap.pay(data.snapToken, {
+    onSuccess: function(result) {
+        cart = [];
+        updateCartUI();
+        
+        // Ganti polling dengan WebSocket
+        connectToOrderWebSocket(data.orderId); // ← Real-time connection!
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Pembayaran Berhasil!',
+            text: `Pesanan #${data.orderId} sedang diproses.`
+        });
     }
+});
 
     function initScrollAnimation() {
         
