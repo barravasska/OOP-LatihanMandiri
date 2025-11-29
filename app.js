@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 1. DEFINISI SEMUA VARIABEL GLOBAL ---
     let cart = []; 
     
-    // --- KODE BARU: Muat Keranjang dari LocalStorage ---
+    // --- Muat Keranjang dari LocalStorage ---
     const savedCart = localStorage.getItem('cafeCart');
     if (savedCart) {
         try {
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let currentTableNumber = null;
     let currentOrderStatus = null;
-    let pollingInterval = null;
+    let orderWebSocket = null; // ← WebSocket connection
 
     // Variabel Keranjang
     const cartItemsEl = document.getElementById('cart-items');
@@ -47,10 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadProducts() {
         try {
             const [productRes, categoryRes] = await Promise.all([
-                fetch(`https://nonsimilar-carolyn-syncytial.ngrok-free.dev/api/products`, {
+                fetch(`${API_BASE_URL}/api/products`, {
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 }),
-                fetch(`https://nonsimilar-carolyn-syncytial.ngrok-free.dev/api/categories`, {
+                fetch(`${API_BASE_URL}/api/categories`, {
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 })
             ]);
@@ -109,25 +109,41 @@ document.addEventListener('DOMContentLoaded', () => {
             button.addEventListener('click', (e) => {
                 const itemEl = e.target.closest('.menu-item');
                 const item = {
-                    id: itemEl.dataset.id,
+                    id: parseInt(itemEl.dataset.id), // ✅ FIX: Convert ke INTEGER
                     name: itemEl.querySelector('h3').textContent,
                     price: parseInt(itemEl.dataset.price),
                     quantity: 1
                 };
+                
+                // Compare dengan INTEGER
                 const existingItem = cart.find(cartItem => cartItem.id === item.id);
+                
                 if (existingItem) {
                     existingItem.quantity++;
                 } else {
                     cart.push(item);
                 }
+                
                 updateCartUI();
+                
+                // ✅ Feedback visual
+                e.target.textContent = '✓ Ditambahkan!';
+                e.target.style.backgroundColor = '#27ae60';
+                setTimeout(() => {
+                    e.target.textContent = 'Tambah ke Keranjang';
+                    e.target.style.backgroundColor = '';
+                }, 1000);
             });
         });
     }
 
     function handleRemoveItem(productId) {
-        const itemIndex = cart.findIndex(item => item.id === productId);
+        // ✅ FIX: Convert ke INTEGER
+        const id = parseInt(productId);
+        const itemIndex = cart.findIndex(item => item.id === id);
+        
         if (itemIndex === -1) return;
+        
         const item = cart[itemIndex];
         if (item.quantity > 1) {
             item.quantity--;
@@ -192,11 +208,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             timer: 3000, 
                             showConfirmButton: false
                         });
+                        
                         cart = [];
                         updateCartUI();
                         
+                        // ✅ Ganti polling dengan WebSocket
                         currentOrderStatus = "paid";
-                        startOrderStatusPolling(data.orderId);
+                        connectToOrderWebSocket(data.orderId);
                     },
                     onPending: function(result) {
                         Swal.fire('Menunggu Pembayaran', 'Silakan selesaikan pembayaran Anda.', 'info');
@@ -274,76 +292,65 @@ document.addEventListener('DOMContentLoaded', () => {
         loadProducts();
     }
 
-function connectToOrderWebSocket(orderId) {
-    const WS_URL = API_BASE_URL.replace('https://', 'wss://').replace('http://', 'ws://');
-    const socket = new WebSocket(`${WS_URL}/ws/order/${orderId}`);
-    
-    socket.onopen = () => {
-        console.log('✅ Connected to order updates');
-    };
-    
-    socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'status_update') {
-            currentOrderStatus = data.status;
-            showStatusNotification(data.status);
+    // ✅ WebSocket Connection untuk Real-Time Updates
+    function connectToOrderWebSocket(orderId) {
+        // Close existing connection if any
+        if (orderWebSocket) {
+            orderWebSocket.close();
         }
-    };
-    
-    socket.onerror = (error) => {
-        console.error('❌ WebSocket error:', error);
-    };
-}
 
-// Panggil setelah pembayaran berhasil
-window.snap.pay(data.snapToken, {
-    onSuccess: function(result) {
-        cart = [];
-        updateCartUI();
+        const WS_URL = API_BASE_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+        orderWebSocket = new WebSocket(`${WS_URL}/ws/order/${orderId}`);
         
-        // Ganti polling dengan WebSocket
-        connectToOrderWebSocket(data.orderId); // ← Real-time connection!
+        orderWebSocket.onopen = () => {
+            console.log('✅ Connected to order #' + orderId + ' updates');
+        };
         
-        Swal.fire({
-            icon: 'success',
-            title: 'Pembayaran Berhasil!',
-            text: `Pesanan #${data.orderId} sedang diproses.`
-        });
+        orderWebSocket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'status_update') {
+                    console.log('📢 Status update:', data.status);
+                    currentOrderStatus = data.status;
+                    showStatusNotification(data.status);
+                    
+                    // Close connection jika pesanan selesai
+                    if (data.status === 'complete' || data.status === 'cancelled') {
+                        orderWebSocket.close();
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing WebSocket message:', e);
+            }
+        };
+        
+        orderWebSocket.onerror = (error) => {
+            console.error('❌ WebSocket error:', error);
+        };
+
+        orderWebSocket.onclose = () => {
+            console.log('🔌 WebSocket connection closed');
+        };
     }
-});
 
     function initScrollAnimation() {
-        
-        // 1. Pilih SEMUA elemen yang ingin kita animasikan
-        //    (Kita targetkan semua kartu menu)
         const scrollElements = document.querySelectorAll(".menu-grid .menu-item");
 
-        if (scrollElements.length === 0) return; // Tidak ada elemen untuk dianimasikan
+        if (scrollElements.length === 0) return;
 
-        // 2. Buat 'Observer' baru
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                
-                // 3. Cek apakah elemennya 'intersecting' (masuk ke layar)
                 if (entry.isIntersecting) {
-                    
-                    // 4. Tambahkan kelas animasi dari animate.css
-                    //    'animate__fadeInUp' adalah efek 'muncul dari bawah' yang bagus
                     entry.target.classList.add('animate__animated', 'animate__fadeInUp');
-                    
-                    // 5. (PENTING) Berhenti mengamati elemen ini
-                    //    agar animasinya tidak berulang setiap kali di-scroll
                     observer.unobserve(entry.target);
                 }
             });
         }, {
-            threshold: 0.1 // Picu animasi saat 10% elemen terlihat
+            threshold: 0.1
         });
 
-        // 6. Amati setiap elemen
         scrollElements.forEach(el => {
-            // Set elemen jadi transparan dulu agar tidak 'flash' (terlihat-hilang)
             el.style.opacity = "0";
             observer.observe(el);
         });
@@ -354,16 +361,19 @@ window.snap.pay(data.snapToken, {
         let icon = 'info';
 
         if (status === 'processing') {
-            title = 'Pesanan Anda sedang disiapkan!';
+            title = '👨‍🍳 Pesanan Anda sedang disiapkan!';
             icon = 'info';
         } else if (status === 'ready') {
-            title = 'Pesanan Anda siap diantar!';
+            title = '✅ Pesanan Anda siap diantar!';
             icon = 'success';
         } else if (status === 'complete') {
-            title = 'Pesanan Anda telah diantar!';
+            title = '🎉 Pesanan Anda telah diantar! Selamat menikmati!';
             icon = 'success';
+        } else if (status === 'cancelled') {
+            title = '❌ Pesanan dibatalkan';
+            icon = 'error';
         } else {
-            return;
+            return; // Jangan tampilkan notif untuk status lain
         }
 
         Swal.fire({
@@ -372,7 +382,7 @@ window.snap.pay(data.snapToken, {
             icon: icon,
             title: title,
             showConfirmButton: false,
-            timer: 4000,
+            timer: 5000,
             timerProgressBar: true
         });
     }
