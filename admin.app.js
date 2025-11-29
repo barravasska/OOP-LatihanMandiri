@@ -33,40 +33,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 3. WEBSOCKET SETUP (BARU - DISISIPKAN) ---
-    function connectWebSocket() {
-        // Ubah http -> ws atau https -> wss
-        // Karena API_BASE_URL ada '/api', kita ambil host-nya saja
-        const wsBaseUrl = API_BASE_URL.replace('http', 'ws').replace('/api', ''); 
+function connectWebSocket() {
+        // Ganti http jadi ws
+        const wsBaseUrl = API_BASE_URL.replace('http', 'ws').replace('https', 'wss'); 
+        // Hapus '/api' jika ada di url base, kita butuh root-nya
+        const cleanWsUrl = wsBaseUrl.replace('/api', '');
+
+        console.log(`🔌 Mencoba konek WebSocket ke: ${cleanWsUrl}/ws/admin`);
         
-        console.log(`Connecting WS to: ${wsBaseUrl}/ws/admin`);
-        const adminSocket = new WebSocket(`${wsBaseUrl}/ws/admin`);
+        const adminSocket = new WebSocket(`${cleanWsUrl}/ws/admin`);
 
         adminSocket.onopen = () => {
-            console.log('✅ Admin WebSocket connected');
+            console.log('✅ WEBSOCKET TERHUBUNG! Siap menerima pesanan.');
         };
 
         adminSocket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
+            console.log('📩 PESAN DITERIMA DARI SERVER:', event.data); // <--- CEK INI NANTI
             
-            if (data.type === 'new_order') {
-                // Notifikasi suara/toast
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'info',
-                    title: '🔔 Pesanan Baru!',
-                    text: `Meja ${data.table} (Order #${data.orderId})`,
-                    showConfirmButton: false,
-                    timer: 5000
-                });
+            try {
+                const data = JSON.parse(event.data);
                 
-                // Auto Refresh Pesanan
-                fetchActiveOrders();
+                if (data.type === 'new_order') {
+                    console.log('🔔 TIPE PESANAN BARU TERDETEKSI! Merefresh data...');
+                    
+                    // Tampilkan Notifikasi
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        title: '🔔 Pesanan Baru!',
+                        text: `Meja ${data.table} (Order #${data.orderId})`,
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                        didOpen: (toast) => {
+                            // Tambahkan suara notifikasi (opsional, browser sering blokir auto-audio)
+                            // const audio = new Audio('assets/notification.mp3');
+                            // audio.play().catch(e => console.log('Audio blocked'));
+                        }
+                    });
+                    
+                    // AMBIL DATA BARU
+                    fetchActiveOrders();
+                }
+            } catch (e) {
+                console.error('❌ Error parsing pesan WebSocket:', e);
             }
         };
 
-        adminSocket.onclose = () => {
-            console.log('WebSocket closed, retrying in 3s...');
+        adminSocket.onerror = (error) => {
+            console.error('❌ WebSocket Error:', error);
+        };
+
+        adminSocket.onclose = (event) => {
+            console.log(`⚠️ WebSocket putus (Code: ${event.code}). Mencoba reconnect dalam 3s...`);
             setTimeout(connectWebSocket, 3000);
         };
     }
