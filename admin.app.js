@@ -1,17 +1,10 @@
-// --- FILE: admin.app.js (VERSI WEBSOCKET) ---
-
+// --- FILE: admin.app.js ---
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. VARIABEL GLOBAL ---
-    
-    // Ganti ini dengan URL Ngrok/Render Anda saat sudah online
-    // Contoh: 'https://blabla.ngrok-free.app' (TANPA /api di belakang)
-    const BASE_URL = 'http://localhost:8080'; 
-    
-    const API_BASE_URL = `${BASE_URL}/api`;
+    const API_BASE_URL = 'http://localhost:8080/api'; // Tidak saya ubah
     const TOKEN = localStorage.getItem('jwt_token');
 
-    // Variabel elemen HTML
     const productForm = document.getElementById('product-form');
     const formTitle = document.getElementById('form-title');
     const productIdInput = document.getElementById('product-id');
@@ -26,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshOrdersBtn = document.getElementById('refresh-orders-btn');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // --- 2. VALIDASI TOKEN ---
+    // --- 2. VALIDASI TOKEN LOGIN ---
     if (!TOKEN) {
         Swal.fire({
             title: 'Akses Ditolak!',
@@ -39,14 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // --- 3. WEBSOCKET CONNECTION (BARU) ---
-    
+    // --- 3. WEBSOCKET SETUP (BARU - DISISIPKAN) ---
     function connectWebSocket() {
-        // Ubah http/https menjadi ws/wss
-        const WS_URL = BASE_URL.replace('https://', 'wss://').replace('http://', 'ws://');
+        // Ubah http -> ws atau https -> wss
+        // Karena API_BASE_URL ada '/api', kita ambil host-nya saja
+        const wsBaseUrl = API_BASE_URL.replace('http', 'ws').replace('/api', ''); 
         
-        console.log(`Connecting to WebSocket: ${WS_URL}/ws/admin`);
-        const adminSocket = new WebSocket(`${WS_URL}/ws/admin`);
+        console.log(`Connecting WS to: ${wsBaseUrl}/ws/admin`);
+        const adminSocket = new WebSocket(`${wsBaseUrl}/ws/admin`);
 
         adminSocket.onopen = () => {
             console.log('✅ Admin WebSocket connected');
@@ -56,41 +49,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(event.data);
             
             if (data.type === 'new_order') {
-                // 1. Tampilkan Notifikasi Suara/Toast
-                showToast(`🔔 Pesanan Baru!`, `Meja ${data.table} baru saja memesan (Order #${data.orderId})`);
+                // Notifikasi suara/toast
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'info',
+                    title: '🔔 Pesanan Baru!',
+                    text: `Meja ${data.table} (Order #${data.orderId})`,
+                    showConfirmButton: false,
+                    timer: 5000
+                });
                 
-                // 2. Otomatis Refresh Daftar Pesanan
+                // Auto Refresh Pesanan
                 fetchActiveOrders();
             }
         };
 
-        adminSocket.onerror = (error) => {
-            console.error('❌ WebSocket error. Pastikan backend mendukung WS.', error);
-        };
-
         adminSocket.onclose = () => {
-            console.log('⚠️ WebSocket closed, reconnecting in 3s...');
-            // Coba konek lagi jika putus (Auto Reconnect)
+            console.log('WebSocket closed, retrying in 3s...');
             setTimeout(connectWebSocket, 3000);
         };
     }
+    // -------------------------------------------------
 
-    // Helper untuk notifikasi Toast
-    function showToast(title, text) {
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'info',
-            title: title,
-            text: text,
-            showConfirmButton: false,
-            timer: 5000,
-            timerProgressBar: true,
-            background: '#e3f2fd' // Warna sedikit biru biar beda
-        });
-    }
-
-    // --- 4. HELPER FETCH (AUTH) ---
+    // --- 4. HELPER UNTUK FETCH DENGAN AUTH ---
     async function fetchWithAuth(url, options = {}) {
         const headers = {
             'Content-Type': 'application/json',
@@ -100,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ...options,
             headers: { ...headers, ...options.headers },
         };
+
         const response = await fetch(url, config);
 
         if (response.status === 401) {
@@ -109,23 +92,26 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             throw new Error('Unauthorized');
         }
+
         return response;
     }
 
-    // --- 5. FUNGSI CRUD & DATA ---
+    // --- 5. FUNGSI UTAMA ---
 
     async function fetchProducts() {
         if (!productList) return;
         productList.innerHTML = '<tr><td colspan="6">Memuat...</td></tr>';
         try {
-            const res = await fetchWithAuth(`${API_BASE_URL}/products`);
+            const res = await fetch(`${API_BASE_URL}/products`); // Public fetch
             if (!res.ok) throw new Error('Gagal memuat produk');
             const products = await res.json();
             productList.innerHTML = '';
+
             if (products.length === 0) {
                 productList.innerHTML = '<tr><td colspan="6">Belum ada produk.</td></tr>';
                 return;
             }
+
             products.forEach(p => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -150,9 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchCategories() {
         if (!productCategoryInput) return;
         try {
-            const res = await fetchWithAuth(`${API_BASE_URL}/categories`);
+            const res = await fetch(`${API_BASE_URL}/categories`); // Public fetch
             if (!res.ok) throw new Error('Gagal memuat kategori');
             const categories = await res.json();
+
             productCategoryInput.innerHTML = '<option value="">-- Pilih Kategori --</option>';
             categories.forEach(c => {
                 const opt = document.createElement('option');
@@ -160,12 +147,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 opt.textContent = `${c.id} - ${c.name}`;
                 productCategoryInput.appendChild(opt);
             });
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+        }
     }
 
     async function fetchActiveOrders() {
         if (!activeOrdersList) return;
-        // Kita tidak kosongkan HTML dengan 'Memuat...' agar tidak kedip-kedip saat realtime update
+        // Hapus loading text agar tidak kedip saat real-time update
         try {
             const res = await fetchWithAuth(`${API_BASE_URL}/orders`);
             if (!res.ok) throw new Error('Gagal mengambil pesanan');
@@ -186,7 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span>Status: <strong>${o.status}</strong></span>
                     </div>
                     <div class="order-card-body">
-                        <ul>${o.items.map(i => `<li>${i.productName} (x${i.quantity})</li>`).join('')}</ul>
+                        <ul>
+                            ${o.items.map(i => `<li>${i.productName} (x${i.quantity})</li>`).join('')}
+                        </ul>
                     </div>
                     <div class="order-card-actions">
                         <button class="update-status-btn" data-id="${o.id}" data-status="processing">Mulai Proses</button>
@@ -196,20 +187,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 activeOrdersList.appendChild(div);
             });
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            activeOrdersList.innerHTML = '<p>Gagal memuat pesanan.</p>';
+        }
     }
 
     async function fetchOrderHistory() {
         if (!orderHistoryList) return;
+        // orderHistoryList.innerHTML = '<p>Memuat riwayat...</p>'; // Optional
         try {
             const res = await fetchWithAuth(`${API_BASE_URL}/orders/history`);
             if (!res.ok) throw new Error('Gagal mengambil riwayat');
             const orders = await res.json();
             orderHistoryList.innerHTML = '';
+
             if (orders.length === 0) {
                 orderHistoryList.innerHTML = '<p style="color:gray;">Belum ada riwayat pesanan.</p>';
                 return;
             }
+
             orders.forEach(o => {
                 const div = document.createElement('div');
                 div.className = 'order-card';
@@ -224,10 +221,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 orderHistoryList.appendChild(div);
             });
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            orderHistoryList.innerHTML = '<p>Gagal memuat riwayat.</p>';
+        }
     }
 
-    // Handler Form & Tombol
+    // --- HANDLER LAINNYA (SAMA SEPERTI SEBELUMNYA) ---
+
     async function handleFormSubmit(e) {
         e.preventDefault();
         const id = productIdInput.value.trim();
@@ -237,25 +238,42 @@ document.addEventListener('DOMContentLoaded', () => {
             price: parseInt(productPriceInput.value),
             imageUrl: productImageInput.value.trim()
         };
+
         if (!data.name || !data.categoryId || !data.price) {
-            Swal.fire('Error', 'Semua field wajib diisi.', 'warning'); return;
+            Swal.fire('Error', 'Semua field wajib diisi.', 'warning');
+            return;
         }
+
         try {
-            const url = id ? `${API_BASE_URL}/products/${id}` : `${API_BASE_URL}/products`;
+            const url = id
+                ? `${API_BASE_URL}/products/${id}`
+                : `${API_BASE_URL}/products`;
             const method = id ? 'PUT' : 'POST';
-            const res = await fetchWithAuth(url, { method, body: JSON.stringify(data) });
+
+            const res = await fetchWithAuth(url, {
+                method,
+                body: JSON.stringify(data)
+            });
+
             if (!res.ok) throw new Error('Gagal menyimpan produk');
+
             Swal.fire('Berhasil', 'Produk disimpan.', 'success');
             resetForm();
             fetchProducts();
-        } catch (err) { Swal.fire('Error', err.message, 'error'); }
+        } catch (err) {
+            Swal.fire('Error', err.message, 'error');
+        }
     }
 
     async function handleDeleteClick(e) {
         if (!e.target.classList.contains('delete-btn')) return;
         const id = e.target.dataset.id;
         Swal.fire({
-            title: 'Yakin Hapus?', text: `Hapus produk #${id}?`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, hapus'
+            title: 'Yakin Hapus?',
+            text: `Hapus produk #${id}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ya, hapus'
         }).then(async (r) => {
             if (r.isConfirmed) {
                 try {
@@ -263,7 +281,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!res.ok) throw new Error('Gagal hapus produk');
                     Swal.fire('Dihapus!', 'Produk berhasil dihapus.', 'success');
                     fetchProducts();
-                } catch (err) { Swal.fire('Error', err.message, 'error'); }
+                } catch (err) {
+                    Swal.fire('Error', err.message, 'error');
+                }
             }
         });
     }
@@ -285,28 +305,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!e.target.classList.contains('update-status-btn')) return;
         const id = e.target.dataset.id;
         const newStatus = e.target.dataset.status;
-        
-        // Langsung update tanpa confirm biar cepat (opsional)
-        // Atau pakai Swal confirm seperti sebelumnya
-        try {
-            const res = await fetchWithAuth(`${API_BASE_URL}/order/update-status`, {
-                method: 'POST',
-                body: JSON.stringify({ orderId: parseInt(id), newStatus })
-            });
-            if (!res.ok) throw new Error('Gagal update status');
-            
-            // Refresh pesanan dan riwayat
-            fetchActiveOrders();
-            if (newStatus === 'complete') fetchOrderHistory();
-            
-            const Toast = Swal.mixin({
-                toast: true, position: 'top-end', showConfirmButton: false, timer: 2000
-            });
-            Toast.fire({ icon: 'success', title: `Status diubah ke ${newStatus}` });
-            
-        } catch (err) {
-            Swal.fire('Error', err.message, 'error');
-        }
+
+        Swal.fire({
+            title: 'Ubah Status?',
+            text: `Ubah pesanan #${id} ke status "${newStatus}"?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Ya'
+        }).then(async (r) => {
+            if (r.isConfirmed) {
+                try {
+                    const res = await fetchWithAuth(`${API_BASE_URL}/order/update-status`, {
+                        method: 'POST',
+                        body: JSON.stringify({ orderId: parseInt(id), newStatus })
+                    });
+                    if (!res.ok) throw new Error('Gagal update status');
+                    Swal.fire('Berhasil', 'Status pesanan diperbarui.', 'success');
+                    
+                    fetchActiveOrders();
+                    // Jika status selesai, update riwayat juga
+                    if(newStatus === 'complete' || newStatus === 'cancelled') {
+                        fetchOrderHistory();
+                    }
+
+                } catch (err) {
+                    Swal.fire('Error', err.message, 'error');
+                }
+            }
+        });
     }
 
     function resetForm() {
@@ -317,10 +343,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 6. INIT & LISTENERS ---
     
-    // Mulai koneksi WebSocket!
+    // Mulai WebSocket
     connectWebSocket();
 
-    // Fetch data awal
     fetchProducts();
     fetchCategories();
     fetchActiveOrders();
@@ -331,8 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchOrderHistory();
     });
 
-    // HAPUS: setInterval tidak diperlukan lagi karena sudah ada WebSocket!
-    // setInterval(...) 
+    // setInterval sudah DIHAPUS karena sudah pakai WebSocket!
 
     productForm?.addEventListener('submit', handleFormSubmit);
     clearBtn?.addEventListener('click', resetForm);
@@ -342,7 +366,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logoutBtn?.addEventListener('click', () => {
         Swal.fire({
-            title: 'Logout?', text: 'Anda akan keluar dari panel admin.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Logout'
+            title: 'Logout?',
+            text: 'Anda akan keluar dari panel admin.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Logout'
         }).then((r) => {
             if (r.isConfirmed) {
                 localStorage.removeItem('jwt_token');
@@ -350,4 +378,5 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
 });
