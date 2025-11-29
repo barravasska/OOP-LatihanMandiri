@@ -22,10 +22,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedCart = localStorage.getItem('cafeCart');
     if (savedCart) {
         try {
-            cart = JSON.parse(savedCart);
+            const parsedCart = JSON.parse(savedCart);
+            
+            // ✅ FIX: Validate dan convert semua ID ke INTEGER
+            cart = parsedCart.map(item => ({
+                id: parseInt(item.id), // Force convert ke integer
+                name: item.name,
+                price: parseInt(item.price),
+                quantity: parseInt(item.quantity)
+            }));
+            
+            console.log('✅ Cart loaded:', cart);
         } catch (e) {
             console.error("Error parsing cart from localStorage:", e);
             localStorage.removeItem('cafeCart');
+            cart = [];
         }
     }
     
@@ -138,40 +149,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleRemoveItem(productId) {
-        // ✅ FIX: Convert ke INTEGER
+        // ✅ Pastikan productId adalah INTEGER
         const id = parseInt(productId);
-        const itemIndex = cart.findIndex(item => item.id === id);
+        console.log('🔍 Looking for item with ID:', id, 'Type:', typeof id);
+        console.log('📦 Current cart:', cart);
         
-        if (itemIndex === -1) return;
+        const itemIndex = cart.findIndex(item => {
+            console.log('  Comparing:', item.id, '(type:', typeof item.id, ') === ', id);
+            return item.id === id;
+        });
+        
+        console.log('📍 Found at index:', itemIndex);
+        
+        if (itemIndex === -1) {
+            console.error('❌ Item not found in cart!');
+            return;
+        }
         
         const item = cart[itemIndex];
         if (item.quantity > 1) {
             item.quantity--;
+            console.log('➖ Decreased quantity:', item.name, '→', item.quantity);
         } else {
             cart.splice(itemIndex, 1);
+            console.log('🗑️ Removed item:', item.name);
         }
+        
         updateCartUI();
     }
 
     function updateCartUI() {
         cartItemsEl.innerHTML = '';
         let total = 0;
+        
         cart.forEach(item => {
             const li = document.createElement('li');
             const itemTotal = item.price * item.quantity;
             const formattedItemTotal = new Intl.NumberFormat('id-ID').format(itemTotal);
+            
             li.innerHTML = `
                 <span>${item.name} (x${item.quantity}) - Rp ${formattedItemTotal}</span>
                 <button class="remove-item-btn" data-id="${item.id}">–</button>
             `;
+            
             cartItemsEl.appendChild(li);
             total += itemTotal;
-            li.querySelector('.remove-item-btn').addEventListener('click', (e) => {
-                handleRemoveItem(e.target.dataset.id);
+            
+            // ✅ Event listener dipasang SETELAH element ditambahkan ke DOM
+            const removeBtn = li.querySelector('.remove-item-btn');
+            removeBtn.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent default behavior
+                const productId = parseInt(e.target.dataset.id);
+                console.log('🗑️ Removing product:', productId);
+                handleRemoveItem(productId);
             });
         });
+        
         cartTotalEl.textContent = `Total: Rp ${new Intl.NumberFormat('id-ID').format(total)}`;
+        
+        // ✅ Save dengan format yang sudah benar
         localStorage.setItem('cafeCart', JSON.stringify(cart));
+        console.log('💾 Cart saved:', cart);
     }
 
     async function executePayment() {
