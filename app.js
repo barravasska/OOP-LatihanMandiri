@@ -105,24 +105,85 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function attachAddToCartListeners() {
-        document.querySelectorAll('.add-to-cart').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const itemEl = e.target.closest('.menu-item');
-                const item = {
-                    id: itemEl.dataset.id,
-                    name: itemEl.querySelector('h3').textContent,
-                    price: parseInt(itemEl.dataset.price),
-                    quantity: 1
-                };
-                const existingItem = cart.find(cartItem => cartItem.id === item.id);
-                if (existingItem) {
-                    existingItem.quantity++;
-                } else {
-                    cart.push(item);
-                }
-                updateCartUI();
+            document.querySelectorAll('.add-to-cart').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const itemEl = e.target.closest('.menu-item');
+                    const item = {
+                        id: itemEl.dataset.id,
+                        name: itemEl.querySelector('h3').textContent,
+                        price: parseInt(itemEl.dataset.price),
+                        quantity: 1
+                    };
+                    const existingItem = cart.find(cartItem => cartItem.id === item.id);
+                    if (existingItem) {
+                        existingItem.quantity++;
+                    } else {
+                        cart.push(item);
+                    }
+                    updateCartUI();
+                    
+                    // Tambahkan efek feedback kecil (opsional)
+                    Swal.fire({
+                        toast: true, position: 'top-end', icon: 'success', 
+                        title: 'Masuk Keranjang', showConfirmButton: false, timer: 1000
+                    });
+                });
             });
-        });
+        }
+
+    // --- BARU: FUNGSI LOAD RIWAYAT PESANAN ---
+    async function loadOrderHistory() {
+        if (!orderHistoryContainer) return; // Cek jika elemen ada di HTML
+
+        orderHistoryContainer.innerHTML = '<p style="text-align:center;">Memuat riwayat...</p>';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/orders/history`, {
+                headers: { 'ngrok-skip-browser-warning': 'true' }
+            });
+            
+            if (!response.ok) throw new Error("Gagal mengambil data riwayat");
+
+            const orders = await response.json();
+            orderHistoryContainer.innerHTML = ''; // Bersihkan loading
+
+            if (orders.length === 0) {
+                orderHistoryContainer.innerHTML = '<p style="text-align:center; color:gray;">Belum ada riwayat pesanan selesai.</p>';
+                return;
+            }
+
+            // Render Data ke HTML
+            orders.forEach(order => {
+                // Generate list items HTML
+                const itemsHtml = order.items.map(item => 
+                    `<li>${item.productName} (${item.quantity}x)</li>`
+                ).join('');
+
+                const orderCard = document.createElement('div');
+                orderCard.className = 'order-history-item'; // Pastikan ada CSS untuk class ini
+                // Styling inline sederhana untuk layout
+                orderCard.style.cssText = "border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 8px; background: #fff;";
+
+                orderCard.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
+                        <strong>Order #${order.id} (Meja ${order.tableNumber || '-'})</strong>
+                        <span class="status-badge status-${order.status}">${order.status}</span>
+                    </div>
+                    <ul style="margin: 5px 0; padding-left: 20px; color: #555; font-size: 0.9em;">
+                        ${itemsHtml}
+                    </ul>
+                    <div style="text-align:right; font-weight:bold; font-size: 0.9em; margin-top:5px;">
+                        Total: Rp ${new Intl.NumberFormat('id-ID').format(order.totalAmount)}
+                    </div>
+                `;
+                
+                orderHistoryContainer.appendChild(orderCard);
+            });
+
+        } catch (error) {
+            console.error(error);
+            orderHistoryContainer.innerHTML = '<p style="color:red; text-align:center;">Gagal memuat riwayat.</p>';
+        }
     }
 
     function handleRemoveItem(productId) {
@@ -274,6 +335,10 @@ document.addEventListener('DOMContentLoaded', () => {
         loadProducts();
     }
 
+    if (refreshHistoryBtn) {
+        refreshHistoryBtn.addEventListener('click', loadOrderHistory);
+    }
+
     function startOrderStatusPolling(orderId) {
         if (pollingInterval) {
             clearInterval(pollingInterval);
@@ -364,4 +429,6 @@ document.addEventListener('DOMContentLoaded', () => {
             timerProgressBar: true
         });
     }
+
+    loadOrderHistory();
 });
