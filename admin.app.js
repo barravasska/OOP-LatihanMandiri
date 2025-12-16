@@ -315,10 +315,11 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchOrderHistory();
     });
 
-    setInterval(() => {
-        fetchActiveOrders();
-        fetchOrderHistory();
-    }, 10000);
+    // ❌ AUTO REFRESH SUDAH DIMATIKAN
+    // setInterval(() => {
+    //     fetchActiveOrders();
+    //     fetchOrderHistory();
+    // }, 10000);
 
     productForm?.addEventListener('submit', handleFormSubmit);
     clearBtn?.addEventListener('click', resetForm);
